@@ -1,0 +1,2 @@
+https://cdn.jsdelivr.net/gh/o0w0b/StaticFiles@main/img/background/1.png
+https://cdn.jsdelivr.net/gh/o0w0b/StaticFiles@main/img/background/2.jpg

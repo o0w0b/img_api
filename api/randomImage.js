@@ -5,7 +5,9 @@ const cors = require('cors');
 
 const app = express();
 
+// =====================
 // 使用cors中间件
+// =====================
 app.use(cors({
   origin: '*'
   // 或者指定特定的域名
@@ -15,73 +17,95 @@ app.use(cors({
 // Serve static files from the public directory
 app.use(express.static('public'));
 
-// 从指定文件中获取随机图像链接的函数
-const getRandomImage = (filePath) => {
-  return new Promise((resolve, reject) => {
-    fs.readFile(filePath, 'utf8', (err, data) => {
-      if (err) {
-        reject(err);
-      } else {
-        const lines = data.split('\n').filter(line => line.trim() !== '');
-        const randomLine = lines[Math.floor(Math.random() * lines.length)];
-        resolve(randomLine);
-      }
-    });
-  });
-};
+// =====================
+// 启动时缓存相关变量
+// =====================
 
-// 从所有文本文件中随机获取图片链接的函数
-const getRandomImageFromAllFiles = () => {
-  return new Promise((resolve, reject) => {
-    const dirPath = path.join(__dirname);
-    fs.readdir(dirPath, (err, files) => {
-      if (err) {
-        reject(err);
-      } else {
-        const txtFiles = files.filter(file => file.endsWith('.txt'));
-        if (txtFiles.length === 0) {
-          reject(new Error('No text files found'));
-        } else {
-          const promises = txtFiles.map(file => getRandomImage(path.join(dirPath, file)));
-          Promise.all(promises)
-            .then(results => {
-              const allImages = results.flat();
-              const randomImage = allImages[Math.floor(Math.random() * allImages.length)];
-              resolve(randomImage);
-            })
-            .catch(reject);
-        }
-      }
-    });
-  });
-};
+// 所有图片的总池（用于 /random）
+let allImages = [];
 
+// 每个分类的图片池（用于 /:category）
+let categoryImages = {};
+
+// =====================
+// 启动时加载所有 txt 文件到内存
+// =====================
+function loadAllImages() {
+  allImages = [];
+  categoryImages = {};
+
+  const dirPath = path.join(__dirname);
+
+  // 读取当前目录下的所有文件
+  const files = fs.readdirSync(dirPath);
+
+  // 只处理 .txt 文件
+  const txtFiles = files.filter(file => file.endsWith('.txt'));
+
+  txtFiles.forEach(file => {
+    const filePath = path.join(dirPath, file);
+
+    // 同步读取 txt 内容（只在启动时执行）
+    const data = fs.readFileSync(filePath, 'utf8');
+
+    const lines = data
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
+
+    if (lines.length === 0) return;
+
+    const categoryName = path.basename(file, '.txt');
+
+    // 保存分类数据
+    categoryImages[categoryName] = lines;
+
+    // 合并到总池
+    allImages.push(...lines);
+  });
+
+  console.log('📦 图片缓存加载完成');
+  console.log('📂 分类数量:', Object.keys(categoryImages).length);
+  console.log('🖼️ 图片总数:', allImages.length);
+}
+
+// =====================
+// 启动时立即加载缓存
+// =====================
+loadAllImages();
+
+// =====================
 // 所有类别随机图像的路由
-app.get('/random', async (req, res) => {
-  try {
-    const imageUrl = await getRandomImageFromAllFiles();
-    res.redirect(imageUrl);
-  } catch (error) {
-    res.status(404).send('No images found');
+// =====================
+app.get('/random', (req, res) => {
+  if (allImages.length === 0) {
+    return res.status(404).send('No images found');
   }
+
+  const randomImage = allImages[Math.floor(Math.random() * allImages.length)];
+  res.redirect(randomImage);
 });
 
+// =====================
 // Default route to serve the documentation
+// =====================
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
+// =====================
 // 指定类别随机图像的路由
-app.get('/:category', async (req, res) => {
+// =====================
+app.get('/:category', (req, res) => {
   const category = req.params.category;
-  const filePath = path.join(__dirname, `${category}.txt`);
+  const images = categoryImages[category];
 
-  try {
-    const imageUrl = await getRandomImage(filePath);
-    res.redirect(imageUrl);
-  } catch (error) {
-    res.status(404).send('Category not found');
+  if (!images || images.length === 0) {
+    return res.status(404).send('Category not found');
   }
+
+  const randomImage = images[Math.floor(Math.random() * images.length)];
+  res.redirect(randomImage);
 });
 
 module.exports = app;
