@@ -1,21 +1,40 @@
 <h2 align="center">img_api</h2>
 
-## Original project:
-
-- https://github.com/aizhiqian/random-pictures （Made by：[aizhiqian](https://github.com/aizhiqian)）
-
 ---
 
-## Access here:
+## 原项目
 
-- https://img.o0w0b.top
+- [random-pictures](https://github.com/aizhiqian/random-pictures) （Made by：[aizhiqian](https://github.com/aizhiqian)）
 
-## 改动
+## 访问地址
 
-- 修改随机图片返回逻辑，减少重复命中
-- 启动时缓存图片链接列表，提升接口性能
-- 修复 Windows 文本行尾导致的链接异常问题
-- 前端页面支持实时预览、深浅色模式等
+- [https://img.o0w0b.top](https://img.o0w0b.top)
+
+## 改动说明
+
+- 修改了随机图片返回逻辑，减少重复命中
+- 优化了性能，部署前将分散的 `api/data/*.txt` 合并为单个 `api/data.json`；运行时一次性 `require` 该文件
+- 修复了 Windows 文本行尾导致的链接异常问题
+- 修改了前端页面的样式，并添加了一些功能
+- 本项目 **无需额外依赖**，使用原生 Node.js 即可运行
+
+## 本地测试
+
+在项目根目录执行：
+
+```shell
+npm run build
+```
+
+```shell
+npm run dev
+```
+
+打开浏览器访问：
+
+```
+http://localhost:5000
+```
 
 ## 部署
 
@@ -23,11 +42,12 @@
 
 ## 图片链接生成工具（Windows）
 
-项目内的 `tool` 文件夹提供了一个 Windows 批处理脚本，用来快速生成图片链接文件
+在项目内的 `tool` 文件夹中提供了一个 Windows 批处理脚本，用来快速生成图片链接文件
 
 生成的 `.txt` 文件可以直接用于本项目，无需额外处理
 
 ### 使用方式
+
 双击脚本后，根据窗口提示操作即可完成
 
 ## 许可证

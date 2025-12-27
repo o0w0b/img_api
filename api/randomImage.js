@@ -1,111 +1,65 @@
-const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const cors = require('cors');
 
-const app = express();
+// 加载构建时生成的 data.json
+const categoryImages = require('./data.json');
+const allImages = Object.values(categoryImages).flat();
 
-// =====================
-// 使用cors中间件
-// =====================
-app.use(cors({
-  origin: '*'
-  // 或者指定特定的域名
-  // origin: 'https://www.api1.link'
-}));
-
-// Serve static files from the public directory
-app.use(express.static('public'));
-
-// =====================
-// 启动时缓存相关变量
-// =====================
-
-// 所有图片的总池（用于 /random）
-let allImages = [];
-
-// 每个分类的图片池（用于 /:category）
-let categoryImages = {};
-
-// =====================
-// 启动时加载所有 txt 文件到内存
-// =====================
-function loadAllImages() {
-  allImages = [];
-  categoryImages = {};
-
-  const dirPath = path.join(__dirname);
-
-  // 读取当前目录下的所有文件
-  const files = fs.readdirSync(dirPath);
-
-  // 只处理 .txt 文件
-  const txtFiles = files.filter(file => file.endsWith('.txt'));
-
-  txtFiles.forEach(file => {
-    const filePath = path.join(dirPath, file);
-
-    // 同步读取 txt 内容（只在启动时执行）
-    const data = fs.readFileSync(filePath, 'utf8');
-
-    const lines = data
-      .split(/\r?\n/)
-      .map(line => line.trim())
-      .filter(Boolean);
-
-    if (lines.length === 0) return;
-
-    const categoryName = path.basename(file, '.txt');
-
-    // 保存分类数据
-    categoryImages[categoryName] = lines;
-
-    // 合并到总池
-    allImages.push(...lines);
-  });
-
-  console.log('📦 图片缓存加载完成');
-  console.log('📂 分类数量:', Object.keys(categoryImages).length);
-  console.log('🖼️ 图片总数:', allImages.length);
+// 工具：CORS
+function cors(res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
 }
 
-// =====================
-// 启动时立即加载缓存
-// =====================
-loadAllImages();
+// 工具：随机元素
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
-// =====================
-// 所有类别随机图像的路由
-// =====================
-app.get('/random', (req, res) => {
+// Serverless 入口
+module.exports = (req, res) => {
+  cors(res);
+
   if (allImages.length === 0) {
-    return res.status(404).send('No images found');
+    res.statusCode = 404;
+    res.end('No images found');
+    return;
   }
 
-  const randomImage = allImages[Math.floor(Math.random() * allImages.length)];
-  res.redirect(randomImage);
-});
+  const urlPath = req.url.replace(/^\/+/, '').split('?')[0];
 
-// =====================
-// Default route to serve the documentation
-// =====================
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
-});
-
-// =====================
-// 指定类别随机图像的路由
-// =====================
-app.get('/:category', (req, res) => {
-  const category = req.params.category;
-  const images = categoryImages[category];
-
-  if (!images || images.length === 0) {
-    return res.status(404).send('Category not found');
+  // 根路径：返回 public/index.html
+  if (urlPath === '') {
+    const html = path.join(__dirname, '../public/index.html');
+    if (fs.existsSync(html)) {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(fs.readFileSync(html));
+    } else {
+      res.writeHead(404).end('index.html not found');
+    }
+    return;
   }
 
-  const randomImage = images[Math.floor(Math.random() * images.length)];
-  res.redirect(randomImage);
-});
+  // favicon
+  if (urlPath === 'favicon.ico') {
+    const icon = path.join(__dirname, '../public/favicon.ico');
+    if (fs.existsSync(icon)) {
+      res.writeHead(200, { 'Content-Type': 'image/x-icon' });
+      res.end(fs.readFileSync(icon));
+    } else {
+      res.writeHead(404).end('favicon.ico not found');
+    }
+    return;
+  }
 
-module.exports = app;
+  // /random 全局随机
+  if (urlPath === 'random') {
+    res.writeHead(302, { Location: pick(allImages) }).end();
+    return;
+  }
+
+  // /:category 分类随机
+  const list = categoryImages[urlPath];
+  if (list && list.length) {
+    res.writeHead(302, { Location: pick(list) }).end();
+  } else {
+    res.writeHead(404).end('Category not found');
+  }
+};

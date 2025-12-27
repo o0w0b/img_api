@@ -3,10 +3,7 @@
   "version": "1.0.0",
   "main": "api/randomImage.js",
   "scripts": {
-    "dev": "node dev.js"
-  },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^5.2.1"
+    "build": "node build-data.js",
+    "dev": "node node-dev.js"
   }
 }

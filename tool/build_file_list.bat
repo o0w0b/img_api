@@ -1,39 +1,111 @@
-﻿@echo off
-title 生成带前缀链接的列表
-color 0A
+@echo off
 setlocal enabledelayedexpansion
 
-:: 1. 说明
-echo 使用方法：
-echo   把要扫描的文件夹直接拖到下面窗口，回车；
-echo   再把保存txt的文件夹拖到下面窗口，回车;
-echo   输入要筛选的后缀（直接回车 = 扫描全部），回车;
-echo   输入前缀链接（可空）：输入要加在文件名前的链接（如 https://cdn.jsdelivr.net/gh/o0w0b/StaticFiles@main/img/）
+:: ==============================
+:: Set global color
+:: ==============================
+:: 0 = black background, A = green text
+color 0A
+
+:: ==============================
+:: Welcome message
+:: ==============================
+echo =====================================
+echo      File Name to URL List Tool
+echo =====================================
 echo.
-
-:: 1. 拖扫描目录
-set /p "src=① 把【扫描目录】拖进来然后回车："
-if not exist "%src%" (echo 路径不存在 & pause & exit /b)
-for %%A in ("%src%") do set "dirName=%%~nA"
-
-:: 2. 拖保存目录
-set /p "dst=② 把【保存目录】拖进来然后回车："
-if not exist "%dst%" (echo 路径不存在 & pause & exit /b)
-
-:: 3. 后缀
-set /p ext=③ 要筛选的后缀（直接回车 = 扫描全部）：
-if "%ext%"=="" (set "mask=*") else set "mask=*.%ext%"
-
-:: 4. 输入前缀链接
-set /p prefix=④ 要在文件名前加的链接（末尾有无/均可）：
-if "%prefix:~-1%"=="\" set "prefix=%prefix:~0,-1%"
-if "%prefix:~-1%"=="/" set "prefix=%prefix:~0,-1%"
-
-:: 5. 生成列表：链接+文件名
-set "txtPath=%dst%\%dirName%.txt"
-(for %%F in ("%src%\%mask%") do echo %prefix%/%%~nxF) > "%txtPath%"
-
+echo Instructions:
+echo 1. Drag the folder to scan
+echo 2. Drag the folder to save the result
+echo 3. Enter file type to filter (e.g., png), leave empty for all files
+echo 4. Enter prefix URL (optional)
 echo.
-echo 完成！已生成：
-echo   %txtPath%
+pause
+
+:: ==============================
+:: 1. Input folder to scan
+:: ==============================
+echo [INFO] Please drag the folder to scan and press Enter:
+set /p srcfolder=
+set srcfolder=!srcfolder:"=!
+if not exist "!srcfolder!" (
+    echo [ERROR] Folder does not exist. Exiting.
+    pause
+    exit /b
+)
+
+:: ==============================
+:: 2. Input folder to save result
+:: ==============================
+echo [INFO] Please drag the folder to save the result and press Enter:
+set /p destfolder=
+set destfolder=!destfolder:"=!
+if not exist "!destfolder!" (
+    echo [ERROR] Save folder does not exist. Exiting.
+    pause
+    exit /b
+)
+
+:: ==============================
+:: 3. Input file type filter
+:: ==============================
+set /p ext=Enter file type to filter (e.g., png), leave empty for all files: 
+
+:: ==============================
+:: 4. Input prefix URL (optional)
+:: ==============================
+set /p prefix=Enter prefix URL (e.g., https://cdn.example.com, trailing '/' will be handled automatically): 
+
+:: ==============================
+:: Generate output TXT file path
+:: ==============================
+for %%a in ("!srcfolder!") do set foldername=%%~nxa
+set outputfile=!destfolder!\!foldername!.txt
+
+:: ==============================
+:: 5. Iterate folder and generate URLs
+:: ==============================
+echo [INFO] Generating URL list...
+
+set firstline=1
+
+if "!ext!"=="" (
+    for %%f in ("!srcfolder!\*") do (
+        set filename=%%~nxf
+        if "!prefix!"=="" (
+            set url=!filename!
+        ) else (
+            set url=!prefix!/!filename!
+        )
+        if !firstline! equ 1 (
+            >"!outputfile!" echo !url!
+            set firstline=0
+        ) else (
+            >>"!outputfile!" echo !url!
+        )
+    )
+) else (
+    for %%f in ("!srcfolder!\*.!ext!") do (
+        set filename=%%~nxf
+        if "!prefix!"=="" (
+            set url=!filename!
+        ) else (
+            set url=!prefix!/!filename!
+        )
+        if !firstline! equ 1 (
+            >"!outputfile!" echo !url!
+            set firstline=0
+        ) else (
+            >>"!outputfile!" echo !url!
+        )
+    )
+)
+
+:: ==============================
+:: Completion message
+:: ==============================
+echo.
+echo [DONE] URL list generated:
+echo [DONE] !outputfile!
+echo.
 pause
