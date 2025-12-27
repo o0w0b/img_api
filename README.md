@@ -40,9 +40,9 @@ http://localhost:5000
 
 [查看部署教程](https://blog.o0w0b.top/posts/ac97dec/)
 
-## 图片链接生成工具（Windows）
+## 图片链接列表创建工具（Windows）
 
-在项目内的 `tool` 文件夹中提供了一个 Windows 批处理脚本，用来快速生成图片链接文件
+在项目内的 `tool` 文件夹中提供了一个 Windows 批处理脚本，用来快速生成图片链接列表文件
 
 生成的 `.txt` 文件可以直接用于本项目，无需额外处理
 
